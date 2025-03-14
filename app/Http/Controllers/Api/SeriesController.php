@@ -3,19 +3,27 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\Autenticador;
 use App\Http\Requests\SeriesFormRequest;
 use App\Models\Series;
 use App\Repositories\SeriesRepository;
+use Illuminate\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use App\Models\User;
 
 class SeriesController extends Controller
 {
     public function __construct(private SeriesRepository $seriesRepository)
     {
     }
-    public function index()
+    public function index(Request $request)
     {
-        return Series::all();
+        $query = Series::query();
+        if ($request->has('nome')) {
+            $query->where('nome', $request->nome);
+        }
+
+        return $query->paginate(5);
     }
 
     public function store(SeriesFormRequest $request)
@@ -37,13 +45,15 @@ class SeriesController extends Controller
     public function update(Series $series, SeriesFormRequest $request)
     {
         $series->fill($request->all());
+        $series->links();
         $series->save();
 
         return $series;
     }
     
-    public function destroy(int $series)
+    public function destroy(int $series, Authenticatable $user)
     {
+        dd($user->tokenCan('is_admin'));
         Series::destroy($series);
         return response()->noContent();
     }
